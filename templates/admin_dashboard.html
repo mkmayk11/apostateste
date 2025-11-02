@@ -123,15 +123,17 @@
                                                 Principal:
                                                 {% if sel.escolha == 'A' %}
                                                     <span class="text-orange">Vitória {{ sel.time_a }}</span>
+                                                {% elif sel.escolha == 'B' %}
+                                                    <span class="text-orange">Vitória {{ sel.time_b }}</span>
                                                 {% elif sel.escolha == 'X' %}
                                                     <span class="text-orange">Empate</span>
                                                 {% else %}
-                                                    <span class="text-orange">Vitória {{ sel.time_b }}</span>
+                                                    <span class="text-orange">{{ sel.escolha }}</span>
                                                 {% endif %}
                                             {% else %}
                                                 Extra: <span class="text-orange">{{ sel.escolha }}</span>
                                             {% endif %}
-                                            (Odd: {{ sel.odd }})
+                                            (Odd: {{ "%.2f"|format(sel.odd) }})
                                         </span>
                                     </li>
                                     {% endfor %}
@@ -192,15 +194,17 @@
                                                 Principal:
                                                 {% if sel.escolha == 'A' %}
                                                     <span class="text-orange">Vitória {{ sel.time_a }}</span>
+                                                {% elif sel.escolha == 'B' %}
+                                                    <span class="text-orange">Vitória {{ sel.time_b }}</span>
                                                 {% elif sel.escolha == 'X' %}
                                                     <span class="text-orange">Empate</span>
                                                 {% else %}
-                                                    <span class="text-orange">Vitória {{ sel.time_b }}</span>
+                                                    <span class="text-orange">{{ sel.escolha }}</span>
                                                 {% endif %}
                                             {% else %}
                                                 Extra: <span class="text-orange">{{ sel.escolha }}</span>
                                             {% endif %}
-                                            (Odd: {{ sel.odd }})
+                                            (Odd: {{ "%.2f"|format(sel.odd) }})
                                         </span>
                                     </li>
                                     {% endfor %}
@@ -248,7 +252,6 @@
 </style>
 
 <script>
-    // Deixa o botão clicado marcado em laranja até atualizar a página
     document.querySelectorAll('.action-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             document.querySelectorAll('.action-btn').forEach(b => b.classList.remove('active'));
