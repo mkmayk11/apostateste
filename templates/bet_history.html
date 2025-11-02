@@ -16,43 +16,46 @@
                         {% if b.status == 'ganho' %} bg-success 
                         {% elif b.status == 'perdido' %} bg-danger 
                         {% else %} bg-secondary text-dark 
-                        {% endif %}">
-                        {{ b.status|capitalize }}
-                    </span>
+                        {% endif %}">{{ b.status|capitalize }}</span>
                 </div>
 
                 <div class="card-body">
                     <p>
-                        <strong>Valor Apostado:</strong> R$ {{ "%.2f"|format(b.stake) }} —
-                        <strong>Odd Total:</strong> {{ "%.2f"|format(b.total_odd) }} —
-                        <strong>Potencial de Ganho:</strong> R$ {{ "%.2f"|format(b.potential) }}
+                        <strong>Valor Apostado:</strong> R$ {{ "%.2f"|format(b.stake|default(0)) }} — 
+                        <strong>Odd Total:</strong> {{ "%.2f"|format(b.total_odd|default(0)) }} — 
+                        <strong>Potencial de Ganho:</strong> R$ {{ "%.2f"|format(b.potential|default(0)) }}
                     </p>
 
                     <ul class="list-group list-group-flush">
                         {% for s in b.selections %}
                         <li class="list-group-item">
                             <div>
-                                <!-- Nome dos times e data -->
                                 <small class="text-muted d-block mb-1">
-                                    {{ s.time_a or 'Time A' }} vs {{ s.time_b or 'Time B' }}
-                                    {% if s.data_hora %} — {{ s.data_hora[:19] }}{% endif %}
+                                    {{ s.time_a|default('Time A') }} vs {{ s.time_b|default('Time B') }} 
+                                    — {{ s.data_hora|default('') }}
                                 </small>
 
                                 {% if s.tipo == 'principal' %}
                                     <span class="fw-semibold text-dark">
                                         Principal:
-                                        {% if s.escolhido_nome %}
-                                            <span class="text-orange">{{ s.escolhido_nome }}</span>
+                                        {% if s.escolha == 'A' %}
+                                            <span class="text-orange">{{ s.time_a|default('Time A') }}</span>
+                                        {% elif s.escolha == 'B' %}
+                                            <span class="text-orange">{{ s.time_b|default('Time B') }}</span>
+                                        {% elif s.escolha == 'X' %}
+                                            <span class="text-orange">Empate</span>
                                         {% else %}
-                                            <span class="text-orange">{{ s.descricao }}</span>
+                                            <span class="text-orange">{{ s.escolha|default('Indefinido') }}</span>
                                         {% endif %}
                                     </span>
                                 {% else %}
                                     <span class="fw-semibold text-dark">
-                                        Extra: <span class="text-orange">{{ s.escolhido_nome or s.descricao }}</span>
+                                        Extra: <span class="text-orange">{{ s.escolha|default('Indefinido') }}</span>
                                     </span>
                                 {% endif %}
-                                (Odd: <span class="fw-bold">{{ "%.2f"|format(s.odd) }}</span>)
+                                
+                                {% set odd_val = s.odd|default(s.odd_valor)|default(s.odds)|default(0) %}
+                                (Odd: <span class="fw-bold">{{ "%.2f"|format(odd_val|float) }}</span>)
                             </div>
 
                             <div class="mt-1">
@@ -65,7 +68,7 @@
                                     </select>
                                 {% else %}
                                     <span class="{% if s.resultado == 'ganho' %}text-success{% elif s.resultado == 'perdeu' %}text-danger{% else %}text-muted{% endif %}">
-                                        {{ s.resultado|capitalize }}
+                                        {{ s.resultado|default('Pendente')|capitalize }}
                                     </span>
                                 {% endif %}
                             </div>
@@ -84,18 +87,14 @@ document.querySelectorAll(".status-select").forEach(select => {
     select.addEventListener("change", function() {
         const selId = this.dataset.id;
         const novoStatus = this.value;
-
         fetch("/update_selection_status", {
             method: "POST",
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({id: selId, status: novoStatus})
-        })
-        .then(res => res.json())
-        .then(data => {
-            if (!data.success) {
-                alert("Erro ao atualizar status!");
-            }
-        });
+        }).then(res => res.json())
+          .then(data => {
+              if (!data.success) alert("Erro ao atualizar status!");
+          });
     });
 });
 </script>
@@ -105,8 +104,6 @@ document.querySelectorAll(".status-select").forEach(select => {
 .text-orange { color: #ff7b00 !important; }
 .border-warning { border-color: #ff7b00 !important; }
 .bg-warning { background-color: #ffdd88 !important; }
-.card-header { font-weight: 600; }
-.list-group-item { background: #fffdf8; }
 </style>
 
 {% endblock %}
