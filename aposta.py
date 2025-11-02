@@ -561,67 +561,55 @@ def apostar():
 # Rota /historico (sem alterações, pois o LEFT JOIN já estava correto)
 @app.route("/historico")
 def historico():
-    if not session.get("usuario_id"):
-        return redirect(url_for("dashboard"))
+    if "user_id" not in session:
+        return redirect(url_for("login"))
 
-    uid = session["usuario_id"]
-    is_admin = session.get("usuario_nome") == "admin"
+    user_id = session["user_id"]
+    is_admin = session.get("is_admin", False)
 
-    conn = get_conn()
-    c = conn.cursor()
+    conn = get_connection()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
-    # Busca todas as apostas do usuário
-    c.execute("SELECT * FROM bets WHERE usuario_id=%s ORDER BY criado_em DESC", (uid,))
-    bets_rows = c.fetchall()
-    bets = []
+    # Consulta principal de apostas
+    cur.execute("""
+        SELECT id, stake, total_odd, potential, status, criado_em
+        FROM bets
+        WHERE usuario_id = %s
+        ORDER BY criado_em DESC;
+    """, (user_id,))
+    bets = cur.fetchall()
 
-    for b in bets_rows:
-        bdict = {
-            "id": b["id"],
-            "stake": float(b["stake"]),
-            "total_odd": float(b["total_odd"]),
-            "potential": float(b["potential"]),
-            "status": b["status"],
-            "criado_em": str(b["criado_em"])
-        }
+    # Pega TODAS as seleções ligadas a essas apostas de uma vez
+    if bets:
+        bet_ids = [b["id"] for b in bets]
+        cur.execute(f"""
+            SELECT 
+                s.id,
+                s.bet_id,
+                s.time_a,
+                s.time_b,
+                s.tipo,
+                s.escolha,
+                s.odd,
+                s.resultado,
+                s.data_hora
+            FROM bet_selections s
+            WHERE s.bet_id = ANY(%s);
+        """, (bet_ids,))
+        selections = cur.fetchall()
 
-        # Agora, usa apenas os dados já salvos em bet_selections
-        c.execute("SELECT * FROM bet_selections WHERE bet_id=%s ORDER BY id", (b["id"],))
-        selections_rows = c.fetchall()
-        selections = []
+        # Agrupa as seleções nas apostas
+        for b in bets:
+            b["selections"] = [s for s in selections if s["bet_id"] == b["id"]]
+    else:
+        for b in bets:
+            b["selections"] = []
 
-        for s in selections_rows:
-            time_a = s.get("time_a") or "Time A"
-            time_b = s.get("time_b") or "Time B"
-            tipo = s.get("tipo", "principal")
-            odd = float(s.get("odd", 0))
-            resultado = s.get("resultado") or "pendente"
-
-            # Usa a descrição salva e o nome do escolhido
-            descricao = s.get("descricao") or s.get("escolhido_nome") or "Indefinido"
-            escolhido_nome = s.get("escolhido_nome") or ""
-
-            # Deixa legível no histórico
-            if tipo == "principal":
-                descricao_legivel = f"{descricao} (Odd: {odd:.2f})"
-            else:
-                descricao_legivel = f"{escolhido_nome} (Odd: {odd:.2f})"
-
-            selections.append({
-                "id": s["id"],
-                "tipo": tipo,
-                "time_a": time_a,
-                "time_b": time_b,
-                "descricao": descricao_legivel,
-                "resultado": resultado,
-                "editable": is_admin and tipo == "extra" and resultado == "pendente"
-            })
-
-        bdict["selections"] = selections
-        bets.append(bdict)
-
+    cur.close()
     conn.close()
+
     return render_template("bet_history.html", bets=bets, is_admin=is_admin)
+
 
 
 
@@ -973,6 +961,7 @@ def logout():
 # ------------------ RODAR ------------------
 if __name__ == "__main__":
     app.run(debug=True, port=5000)
+
 
 
 
