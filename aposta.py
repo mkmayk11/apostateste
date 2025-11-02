@@ -568,7 +568,8 @@ def historico():
 
     is_admin = session.get("is_admin", False)
 
-    conn = get_connection()
+    conn = get_db_connection()
+
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
     # Consulta principal de apostas
@@ -962,6 +963,7 @@ def logout():
 # ------------------ RODAR ------------------
 if __name__ == "__main__":
     app.run(debug=True, port=5000)
+
 
 
 
