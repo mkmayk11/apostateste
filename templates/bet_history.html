@@ -33,8 +33,9 @@
                         <li class="list-group-item">
                             <div>
                                 <small class="text-muted d-block mb-1">
-                                    {{ s.time_a }} vs {{ s.time_b }} — {{ s.data_hora }}
+                                    {{ s.time_a or 'Time A' }} vs {{ s.time_b or 'Time B' }} — {{ s.data_hora or '' }}
                                 </small>
+
 
                                 {% if s.tipo == 'principal' %}
                                     <span class="fw-semibold text-dark">
@@ -109,3 +110,4 @@ document.querySelectorAll(".status-select").forEach(select => {
 </style>
 
 {% endblock %}
+
