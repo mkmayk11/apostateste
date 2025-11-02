@@ -562,7 +562,6 @@ def apostar():
 @app.route("/historico")
 def historico():
     if not session.get("usuario_id"):
-        # Redireciona para dashboard ou outra página de login real
         return redirect(url_for("dashboard"))
 
     uid = session["usuario_id"]
@@ -571,7 +570,7 @@ def historico():
     conn = get_conn()
     c = conn.cursor()
 
-    # Pega todas as apostas do usuário
+    # Busca todas as apostas do usuário
     c.execute("SELECT * FROM bets WHERE usuario_id=%s ORDER BY criado_em DESC", (uid,))
     bets_rows = c.fetchall()
     bets = []
@@ -586,45 +585,36 @@ def historico():
             "criado_em": str(b["criado_em"])
         }
 
-        # Seleções da aposta
-        c.execute("""
-            SELECT s.*, j.time_a, j.time_b
-            FROM bet_selections s
-            LEFT JOIN jogos j ON s.jogo_id = j.id
-            WHERE s.bet_id=%s
-            ORDER BY s.id
-        """, (b["id"],))
+        # Agora, usa apenas os dados já salvos em bet_selections
+        c.execute("SELECT * FROM bet_selections WHERE bet_id=%s ORDER BY id", (b["id"],))
         selections_rows = c.fetchall()
         selections = []
 
         for s in selections_rows:
-            # Nome dos times
             time_a = s.get("time_a") or "Time A"
             time_b = s.get("time_b") or "Time B"
-
-            # Descrição legível
-            escolha = s.get("escolha")
             tipo = s.get("tipo", "principal")
+            odd = float(s.get("odd", 0))
+            resultado = s.get("resultado") or "pendente"
 
+            # Usa a descrição salva e o nome do escolhido
+            descricao = s.get("descricao") or s.get("escolhido_nome") or "Indefinido"
+            escolhido_nome = s.get("escolhido_nome") or ""
+
+            # Deixa legível no histórico
             if tipo == "principal":
-                if escolha == "A":
-                    descricao = f"{time_a} vence"
-                elif escolha == "B":
-                    descricao = f"{time_b} vence"
-                elif escolha.lower() == "x" or escolha.lower() == "empate":
-                    descricao = "Empate"
-                else:
-                    descricao = "Indefinido"
-            else:  # extra
-                descricao = escolha
+                descricao_legivel = f"{descricao} (Odd: {odd:.2f})"
+            else:
+                descricao_legivel = f"{escolhido_nome} (Odd: {odd:.2f})"
 
             selections.append({
                 "id": s["id"],
                 "tipo": tipo,
-                "descricao": descricao,
-                "odd": float(s.get("odd", 0)),
-                "resultado": s.get("resultado") or "pendente",
-                "editable": is_admin and tipo == "extra" and s.get("resultado")=="pendente"
+                "time_a": time_a,
+                "time_b": time_b,
+                "descricao": descricao_legivel,
+                "resultado": resultado,
+                "editable": is_admin and tipo == "extra" and resultado == "pendente"
             })
 
         bdict["selections"] = selections
@@ -632,6 +622,7 @@ def historico():
 
     conn.close()
     return render_template("bet_history.html", bets=bets, is_admin=is_admin)
+
 
 
 # ------------------ DEPÓSITO / SAQUE ------------------
@@ -982,6 +973,7 @@ def logout():
 # ------------------ RODAR ------------------
 if __name__ == "__main__":
     app.run(debug=True, port=5000)
+
 
 
 
