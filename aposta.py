@@ -561,15 +561,13 @@ def apostar():
 # Rota /historico (sem alterações, pois o LEFT JOIN já estava correto)
 @app.route("/historico")
 def historico():
-    if "usuario_id" not in session:
+    if "user_id" not in session:
         return redirect(url_for("login"))
-        
-    user_id = session["usuario_id"]
 
+    user_id = session["user_id"]
     is_admin = session.get("is_admin", False)
 
     conn = get_db_connection()
-
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
     # Consulta principal de apostas
@@ -581,26 +579,27 @@ def historico():
     """, (user_id,))
     bets = cur.fetchall()
 
-    # Pega TODAS as seleções ligadas a essas apostas de uma vez
     if bets:
         bet_ids = [b["id"] for b in bets]
-        cur.execute(f"""
+
+        # Junta seleções com os nomes de times da tabela jogos
+        cur.execute("""
             SELECT 
                 s.id,
                 s.bet_id,
-                s.time_a,
-                s.time_b,
+                COALESCE(s.time_a, j.time_a) AS time_a,
+                COALESCE(s.time_b, j.time_b) AS time_b,
                 s.tipo,
                 s.escolha,
                 s.odd,
                 s.resultado,
                 s.data_hora
             FROM bet_selections s
+            LEFT JOIN jogos j ON s.jogo_id = j.id
             WHERE s.bet_id = ANY(%s);
         """, (bet_ids,))
         selections = cur.fetchall()
 
-        # Agrupa as seleções nas apostas
         for b in bets:
             b["selections"] = [s for s in selections if s["bet_id"] == b["id"]]
     else:
@@ -611,6 +610,7 @@ def historico():
     conn.close()
 
     return render_template("bet_history.html", bets=bets, is_admin=is_admin)
+
 
 
 
@@ -963,6 +963,7 @@ def logout():
 # ------------------ RODAR ------------------
 if __name__ == "__main__":
     app.run(debug=True, port=5000)
+
 
 
 
