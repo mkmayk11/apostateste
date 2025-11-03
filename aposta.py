@@ -593,11 +593,22 @@ def historico():
                 s.escolha,
                 s.odd,
                 s.resultado,
-                s.data_hora
+                s.data_hora,
+                CASE 
+                    WHEN s.tipo = 'principal' THEN 
+                        CASE 
+                            WHEN s.escolha = 'A' THEN j.time_a
+                            WHEN s.escolha = 'B' THEN j.time_b
+                            WHEN s.escolha = 'X' THEN 'Empate'
+                            ELSE s.escolha
+                        END
+                    ELSE s.escolha
+                END AS descricao
             FROM bet_selections s
             LEFT JOIN jogos j ON s.jogo_id = j.id
             WHERE s.bet_id = ANY(%s);
         """, (bet_ids,))
+
         selections = cur.fetchall()
 
         for b in bets:
@@ -963,6 +974,7 @@ def logout():
 # ------------------ RODAR ------------------
 if __name__ == "__main__":
     app.run(debug=True, port=5000)
+
 
 
 
