@@ -561,7 +561,7 @@ def apostar():
 # Rota /historico (sem alterações, pois o LEFT JOIN já estava correto)
 @app.route("/historico")
 def historico():
-   if "usuario_id" not in session:
+    if "usuario_id" not in session:
         return redirect(url_for("login"))
 
     user_id = session["usuario_id"]
@@ -963,6 +963,7 @@ def logout():
 # ------------------ RODAR ------------------
 if __name__ == "__main__":
     app.run(debug=True, port=5000)
+
 
 
 
