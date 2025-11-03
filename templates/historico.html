@@ -31,7 +31,10 @@
               <div class="list-group-item bg-dark text-light border-secondary mb-2 rounded">
                 <div class="d-flex justify-content-between">
                   <div>
-                    <strong>{{ s.time_a }} vs {{ s.time_b }}</strong><br>
+                    <strong>
+                      {{ s.time_a|default('Time A') }} vs {{ s.time_b|default('Time B') }}
+                    </strong><br>
+
                     <small class="text-warning">{{ s.tipo|capitalize }}</small> — 
                     {{ s.descricao }} <small>(Odd: {{ "%.2f"|format(s.odd) }})</small>
                   </div>
